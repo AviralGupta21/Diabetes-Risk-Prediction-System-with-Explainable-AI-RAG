@@ -1,15 +1,24 @@
-fastapi
-uvicorn
-pydantic
-numpy
-pandas
-scikit-learn
-tensorflow
-shap
-xgboost
-chromadb
-langchain
-langchain-community
-pymupdf
-sentence-transformers
-requests
+# Core ML
+numpy==1.26.4
+pandas==2.2.2
+scikit-learn==1.4.2
+
+# Deep Learning
+tensorflow==2.16.1
+
+# Explainability
+shap==0.45.1
+
+# RAG + Embeddings
+sentence-transformers==2.7.0
+chromadb==0.5.3
+
+# PDF Processing (for corpus)
+pymupdf==1.24.9
+
+# Backend API
+fastapi==0.111.0
+uvicorn==0.30.1
+
+# Utilities
+requests==2.32.3
