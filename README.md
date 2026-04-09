@@ -223,7 +223,7 @@ It does **not provide medical advice**. Always consult a qualified healthcare pr
 
 ## 👨‍💻 Author
 
-**Aviral**
+**Aviral Gupta**
 AI/ML Developer | Explainable AI Enthusiast
 
 ---
