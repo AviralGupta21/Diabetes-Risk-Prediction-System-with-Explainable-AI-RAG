@@ -1,0 +1,1184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Diabetes Risk Assessment</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #000000;
+    --surface: #0a0a0a;
+    --surface2: #111111;
+    --border: #1a1a1a;
+    --border2: #222222;
+    --text-primary: #ffffff;
+    --text-secondary: #888888;
+    --text-muted: #555555;
+    --text-dim: #444444;
+    --text-dimmer: #333333;
+    --font: 'Space Grotesk', sans-serif;
+  }
+
+  html { font-size: 16px; }
+
+  body {
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: var(--font);
+    font-weight: 400;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  /* ── LAYOUT ── */
+  .shell {
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    width: 260px;
+    min-width: 260px;
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    overflow: hidden;
+    z-index: 100;
+    background: var(--bg);
+  }
+
+  .sidebar-header {
+    padding: 28px 20px 16px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .sidebar-title {
+    font-size: 0.65rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+  }
+
+  .sidebar-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .btn-new {
+    font-family: var(--font);
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background: var(--text-primary);
+    color: var(--bg);
+    border: none;
+    padding: 7px 14px;
+    cursor: pointer;
+    border-radius: 2px;
+  }
+  .btn-new:hover { background: #e0e0e0; }
+
+  .btn-clear-history {
+    font-family: var(--font);
+    font-size: 0.65rem;
+    font-weight: 400;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    background: transparent;
+    color: var(--text-dim);
+    border: 1px solid var(--border2);
+    padding: 6px 10px;
+    cursor: pointer;
+    border-radius: 2px;
+  }
+  .btn-clear-history:hover { color: var(--text-secondary); border-color: #444; }
+
+  .sidebar-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 0;
+  }
+
+  .sidebar-list::-webkit-scrollbar { width: 3px; }
+  .sidebar-list::-webkit-scrollbar-track { background: transparent; }
+  .sidebar-list::-webkit-scrollbar-thumb { background: var(--border2); }
+
+  .history-empty {
+    padding: 24px 20px;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    font-weight: 300;
+  }
+
+  .history-item {
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+  }
+  .history-item:hover { background: var(--surface); }
+  .history-item.active {
+    background: var(--surface2);
+    border-left: 2px solid var(--text-secondary);
+    padding-left: 18px;
+  }
+
+  .history-item-label {
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 3px;
+  }
+  .history-item-label.high { color: var(--text-primary); }
+  .history-item-label.low  { color: var(--text-muted); }
+
+  .history-item-prob {
+    font-size: 0.68rem;
+    color: var(--text-muted);
+    font-weight: 400;
+    margin-top: 2px;
+  }
+
+  .history-item-meta {
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    font-weight: 300;
+    margin-top: 2px;
+  }
+
+  /* ── MAIN CONTENT ── */
+  .main {
+    margin-left: 260px;
+    flex: 1;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .content {
+    max-width: 860px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 56px 40px 80px;
+  }
+
+  /* ── PAGE HEADER ── */
+  .page-header { margin-bottom: 48px; }
+
+  .page-title {
+    font-size: 1.8rem;
+    font-weight: 300;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+    margin-bottom: 8px;
+  }
+
+  .page-subtitle {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    font-weight: 400;
+  }
+
+  /* ── FORM ── */
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px 32px;
+    margin-bottom: 32px;
+  }
+
+  .field-group { display: flex; flex-direction: column; gap: 5px; }
+
+  .field-label {
+    font-size: 0.65rem;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+  }
+
+  .field-desc {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    font-weight: 400;
+    margin-bottom: 2px;
+  }
+
+  .field-input {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    color: var(--text-primary);
+    font-family: var(--font);
+    font-size: 0.9rem;
+    font-weight: 400;
+    padding: 10px 12px;
+    border-radius: 2px;
+    outline: none;
+    width: 100%;
+    appearance: textfield;
+    -moz-appearance: textfield;
+  }
+  .field-input::-webkit-outer-spin-button,
+  .field-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+  .field-input:focus { border-color: #444; }
+  .field-input.error { border-color: #333; }
+  .field-input[readonly] { pointer-events: none; }
+
+  .field-error {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    font-weight: 400;
+    margin-top: 2px;
+    display: none;
+  }
+  .field-error.visible { display: block; }
+
+  /* ── SUBMIT BUTTON ── */
+  .btn-submit {
+    width: 100%;
+    font-family: var(--font);
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    background: var(--text-primary);
+    color: var(--bg);
+    border: none;
+    padding: 14px;
+    cursor: pointer;
+    border-radius: 2px;
+    position: relative;
+  }
+  .btn-submit:hover:not(:disabled) { background: #e0e0e0; }
+  .btn-submit:disabled { cursor: not-allowed; }
+
+  .btn-submit .btn-text { display: block; }
+  .btn-submit .btn-loading { display: none; }
+  .btn-submit.loading .btn-text { display: none; }
+  .btn-submit.loading .btn-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 20px;
+  }
+
+  .dot {
+    width: 4px; height: 4px;
+    background: var(--bg);
+    border-radius: 50%;
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+  .dot:nth-child(2) { animation-delay: 0.2s; }
+  .dot:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes pulse {
+    0%, 80%, 100% { opacity: 0.3; }
+    40%           { opacity: 1; }
+  }
+
+  .form-error {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-top: 16px;
+    display: none;
+  }
+  .form-error.visible { display: block; }
+
+  /* ── RESULTS ── */
+  #results-view { display: none; }
+
+  .btn-new-assessment {
+    font-family: var(--font);
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background: transparent;
+    color: #888;
+    border: 1px solid #333;
+    padding: 9px 18px;
+    cursor: pointer;
+    border-radius: 2px;
+    margin-bottom: 36px;
+  }
+  .btn-new-assessment:hover { border-color: #555; color: var(--text-primary); }
+
+  /* ── CARD ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 28px;
+    margin-bottom: 16px;
+  }
+
+  .card-header {
+    font-size: 0.62rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+  }
+
+  /* ── RISK SUMMARY ── */
+  .risk-summary {
+    display: flex;
+    align-items: flex-start;
+    gap: 40px;
+  }
+
+  .risk-label-block { flex: 1; }
+
+  .risk-label {
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .risk-label.high { color: var(--text-primary); }
+  .risk-label.low  { color: var(--text-secondary); }
+
+  .risk-metrics {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 160px;
+  }
+
+  .metric { display: flex; flex-direction: column; gap: 3px; }
+
+  .metric-label {
+    font-size: 0.6rem;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .metric-value-primary {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .metric-value-secondary {
+    font-size: 1.1rem;
+    font-weight: 400;
+    color: var(--text-secondary);
+  }
+
+  .prob-bar-wrap {
+    margin-top: 20px;
+    height: 2px;
+    background: #1a1a1a;
+    width: 100%;
+  }
+
+  .prob-bar-fill {
+    height: 100%;
+    background: var(--text-primary);
+  }
+
+  /* ── SUBMITTED VALUES GRID ── */
+  .submitted-values {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+  }
+
+  .submitted-values-label {
+    font-size: 0.58rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+  }
+
+  .submitted-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px 16px;
+  }
+
+  .submitted-item { display: flex; flex-direction: column; gap: 2px; }
+
+  .submitted-item-label {
+    font-size: 0.58rem;
+    color: var(--text-dim);
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .submitted-item-value {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    font-weight: 400;
+  }
+
+  /* ── FEATURE ATTRIBUTION ── */
+  .shap-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .shap-row {
+    display: grid;
+    grid-template-columns: 160px 1fr 64px;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .shap-name {
+    font-size: 0.72rem;
+    font-weight: 400;
+    color: var(--text-secondary);
+    text-align: right;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .shap-name.primary { color: var(--text-primary); font-weight: 500; }
+
+  .shap-bar-wrap {
+    position: relative;
+    height: 14px;
+    display: flex;
+    align-items: center;
+  }
+
+  .shap-center {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    width: 1px;
+    height: 100%;
+    background: var(--border2);
+  }
+
+  .shap-bar {
+    position: absolute;
+    height: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+  .shap-bar.positive { left: 50%; background: var(--text-primary); }
+  .shap-bar.negative { right: 50%; background: #444444; }
+
+  .shap-val {
+    font-size: 0.65rem;
+    font-weight: 400;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .shap-note {
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    font-weight: 300;
+    line-height: 1.5;
+    margin-top: 4px;
+  }
+
+  .section-text {
+    font-size: 0.82rem;
+    color: #cccccc;
+    font-weight: 300;
+    line-height: 1.7;
+    white-space: pre-wrap;
+  }
+
+  .sources-label {
+    font-size: 0.6rem;
+    color: var(--text-dim);
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-top: 16px;
+    margin-bottom: 6px;
+  }
+
+  .sources-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .sources-list li {
+    font-size: 0.68rem;
+    color: var(--text-muted);
+    font-weight: 400;
+    padding-left: 10px;
+    position: relative;
+  }
+  .sources-list li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 3px;
+    background: var(--text-dim);
+    border-radius: 50%;
+  }
+
+  /* ── NON-ACTIONABLE ── */
+  .non-actionable-section {
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 20px 28px;
+    margin-bottom: 16px;
+  }
+
+  .na-header {
+    font-size: 0.58rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 14px;
+  }
+
+  .na-item { margin-bottom: 12px; }
+  .na-item:last-child { margin-bottom: 0; }
+
+  .na-item-top {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 3px;
+  }
+
+  .na-feature-name {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    font-weight: 400;
+  }
+
+  .na-value  { font-size: 0.68rem; color: var(--text-dim); font-weight: 400; }
+  .na-shap   { font-size: 0.65rem; color: var(--text-dim); font-weight: 400; }
+
+  .na-note {
+    font-size: 0.65rem;
+    color: var(--text-dimmer);
+    font-weight: 300;
+    font-style: italic;
+    line-height: 1.5;
+  }
+
+  /* ── DIVIDER ── */
+  .section-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 24px 0;
+  }
+
+  /* ── MOBILE ── */
+  @media (max-width: 767px) {
+    .sidebar { display: none; }
+    .main { margin-left: 0; }
+    .content { padding: 32px 20px 60px; }
+    .form-grid { grid-template-columns: 1fr; gap: 20px; }
+    .two-col { grid-template-columns: 1fr; }
+    .risk-summary { flex-direction: column; gap: 20px; }
+    .shap-row { grid-template-columns: 110px 1fr 55px; }
+    .submitted-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- ── SIDEBAR ── -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-title">Assessment History</div>
+      <div class="sidebar-actions">
+        <button class="btn-new" onclick="showInputForm()">New</button>
+        <button class="btn-clear-history" onclick="clearHistory()">Clear All</button>
+      </div>
+    </div>
+    <div class="sidebar-list" id="history-list">
+      <div class="history-empty" id="history-empty">No assessments yet.</div>
+    </div>
+  </aside>
+
+  <!-- ── MAIN ── -->
+  <main class="main">
+    <div class="content">
+
+      <!-- PAGE HEADER -->
+      <div class="page-header">
+        <h1 class="page-title">Diabetes Risk Prediction</h1>
+        <p class="page-subtitle">Enter clinical measurements to receive an explainable risk assessment.</p>
+      </div>
+
+      <!-- ══ INPUT VIEW ══ -->
+      <div id="input-view">
+        <form id="assessment-form" novalidate>
+          <div class="form-grid">
+
+            <div class="field-group">
+              <label class="field-label" for="f-pregnancies">Pregnancies</label>
+              <span class="field-desc">Number of pregnancies</span>
+              <input class="field-input" type="number" id="f-pregnancies" min="0" step="1">
+              <span class="field-error" id="e-pregnancies"></span>
+            </div>
+
+            <div class="field-group">
+              <label class="field-label" for="f-glucose">Glucose</label>
+              <span class="field-desc">Plasma glucose concentration (mg/dL)</span>
+              <input class="field-input" type="number" id="f-glucose" min="0" step="0.1">
+              <span class="field-error" id="e-glucose"></span>
+            </div>
+
+            <div class="field-group">
+              <label class="field-label" for="f-blood-pressure">Blood Pressure</label>
+              <span class="field-desc">Diastolic blood pressure (mm Hg)</span>
+              <input class="field-input" type="number" id="f-blood-pressure" min="0" step="0.1">
+              <span class="field-error" id="e-blood-pressure"></span>
+            </div>
+
+            <div class="field-group">
+              <label class="field-label" for="f-skin-thickness">Skin Thickness</label>
+              <span class="field-desc">Triceps skinfold thickness (mm)</span>
+              <input class="field-input" type="number" id="f-skin-thickness" min="0" step="0.1">
+              <span class="field-error" id="e-skin-thickness"></span>
+            </div>
+
+            <div class="field-group">
+              <label class="field-label" for="f-insulin">Insulin</label>
+              <span class="field-desc">2-hour serum insulin (μU/mL)</span>
+              <input class="field-input" type="number" id="f-insulin" min="0" step="0.1">
+              <span class="field-error" id="e-insulin"></span>
+            </div>
+
+            <div class="field-group">
+              <label class="field-label" for="f-bmi">BMI</label>
+              <span class="field-desc">Body mass index (kg/m²)</span>
+              <input class="field-input" type="number" id="f-bmi" min="0" step="0.1">
+              <span class="field-error" id="e-bmi"></span>
+            </div>
+
+            <div class="field-group">
+              <label class="field-label" for="f-dpf">Diabetes Pedigree</label>
+              <span class="field-desc">Family history risk score</span>
+              <input class="field-input" type="number" id="f-dpf" min="0" step="0.001">
+              <span class="field-error" id="e-dpf"></span>
+            </div>
+
+            <div class="field-group">
+              <label class="field-label" for="f-age">Age</label>
+              <span class="field-desc">Age in years</span>
+              <input class="field-input" type="number" id="f-age" min="0" step="1">
+              <span class="field-error" id="e-age"></span>
+            </div>
+
+          </div>
+
+          <button type="submit" class="btn-submit" id="btn-submit">
+            <span class="btn-text">Assess Risk</span>
+            <span class="btn-loading">
+              <span class="dot"></span>
+              <span class="dot"></span>
+              <span class="dot"></span>
+            </span>
+          </button>
+
+          <div class="form-error" id="form-error">
+            Assessment failed. The backend may be unavailable.
+          </div>
+        </form>
+      </div>
+
+      <!-- ══ RESULTS VIEW ══ -->
+      <div id="results-view">
+
+        <button class="btn-new-assessment" onclick="showInputForm()">← New Assessment</button>
+
+        <!-- 1. RISK SUMMARY -->
+        <div class="card">
+          <div class="risk-summary">
+            <div class="risk-label-block">
+              <div class="risk-label" id="r-risk-label">—</div>
+              <div class="prob-bar-wrap">
+                <div class="prob-bar-fill" id="r-prob-bar" style="width:0%"></div>
+              </div>
+            </div>
+            <div class="risk-metrics">
+              <div class="metric">
+                <span class="metric-label">Probability</span>
+                <span class="metric-value-primary" id="r-probability">—</span>
+              </div>
+              <div class="metric">
+                <span class="metric-label">Confidence</span>
+                <span class="metric-value-secondary" id="r-confidence">—</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Submitted input values shown inside the summary card -->
+          <div class="submitted-values">
+            <div class="submitted-values-label">Submitted Values</div>
+            <div class="submitted-grid" id="r-submitted-values"></div>
+          </div>
+        </div>
+
+        <!-- 2. FEATURE ATTRIBUTION -->
+        <div class="card">
+          <div class="card-header">Feature Attribution</div>
+          <div class="shap-rows" id="r-shap-rows"></div>
+          <div class="shap-note">
+            Positive values push toward high risk. Negative values push toward low risk. Bar length represents relative influence.
+          </div>
+        </div>
+
+        <!-- 3. EXPLANATION + ADVICE (two columns) -->
+        <div>
+          <div class="card">
+            <div class="card-header">Clinical Explanation</div>
+            <div class="section-text" id="r-explanation"></div>
+          </div>
+          <div class="card">
+            <div class="card-header">Personalized Advice</div>
+            <div style="
+                border: 1px solid #333;
+                padding: 10px 14px;
+                margin-bottom: 16px;
+                font-size: 0.72rem;
+                font-weight: 500;
+                color: #888888;
+                letter-spacing: 0.04em;
+                line-height: 1.6;
+            ">
+                This is not medical advice. This application is an academic
+                demonstration only. Consult a qualified physician for any
+                health decisions.
+            </div>
+            <div class="section-text" id="r-advice"></div>
+          </div>
+        </div>
+
+        <!-- 4. NON-ACTIONABLE -->
+        <div class="non-actionable-section" id="r-non-actionable-section">
+          <div class="na-header">Acknowledged Non-Actionable Factors</div>
+          <div id="r-non-actionable-items"></div>
+        </div>
+
+      </div><!-- /results-view -->
+
+    </div><!-- /content -->
+  </main>
+
+</div><!-- /shell -->
+
+<script>
+// ─────────────────────────────────────────────
+// FIELD CONFIG
+// ─────────────────────────────────────────────
+const FIELDS = [
+  { id: 'f-pregnancies',    key: 'Pregnancies',                errId: 'e-pregnancies',    apiKey: 'Pregnancies' },
+  { id: 'f-glucose',        key: 'Glucose',                    errId: 'e-glucose',        apiKey: 'Glucose' },
+  { id: 'f-blood-pressure', key: 'BloodPressure',              errId: 'e-blood-pressure', apiKey: 'BloodPressure' },
+  { id: 'f-skin-thickness', key: 'SkinThickness',              errId: 'e-skin-thickness', apiKey: 'SkinThickness' },
+  { id: 'f-insulin',        key: 'Insulin',                    errId: 'e-insulin',        apiKey: 'Insulin' },
+  { id: 'f-bmi',            key: 'BMI',                        errId: 'e-bmi',            apiKey: 'BMI' },
+  { id: 'f-dpf',            key: 'DiabetesPedigreeFunction',   errId: 'e-dpf',            apiKey: 'DiabetesPedigreeFunction' },
+  { id: 'f-age',            key: 'Age',                        errId: 'e-age',            apiKey: 'Age' },
+];
+
+// Maps display labels for submitted values section
+const FIELD_LABELS = {
+  Pregnancies: 'Pregnancies',
+  Glucose: 'Glucose',
+  BloodPressure: 'Blood Pressure',
+  SkinThickness: 'Skin Thickness',
+  Insulin: 'Insulin',
+  BMI: 'BMI',
+  DiabetesPedigreeFunction: 'Pedigree',
+  Age: 'Age',
+};
+
+// ─────────────────────────────────────────────
+// HISTORY (localStorage)
+// ─────────────────────────────────────────────
+const HISTORY_KEY = 'dra_history_v2';
+let activeHistoryId = null;
+
+function loadHistory() {
+  try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; }
+  catch { return []; }
+}
+
+function saveHistory(h) {
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(h));
+}
+
+function addToHistory(inputData, result) {
+  const history = loadHistory();
+  const id = Date.now().toString();
+  history.unshift({ id, timestamp: new Date().toISOString(), input: inputData, result });
+  if (history.length > 50) history.pop();
+  saveHistory(history);
+  return id;
+}
+
+function renderHistorySidebar() {
+  const history = loadHistory();
+  const list = document.getElementById('history-list');
+  const empty = document.getElementById('history-empty');
+
+  Array.from(list.querySelectorAll('.history-item')).forEach(el => el.remove());
+
+  if (history.length === 0) {
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  history.forEach(entry => {
+    const isHigh = entry.result.prediction === 1;
+    const prob   = (entry.result.probability * 100).toFixed(1);
+    const d      = new Date(entry.timestamp);
+    const dateStr = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+    const timeStr = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+
+    const item = document.createElement('div');
+    item.className = 'history-item' + (entry.id === activeHistoryId ? ' active' : '');
+    item.dataset.id = entry.id;
+    item.innerHTML = `
+      <div class="history-item-label ${isHigh ? 'high' : 'low'}">${isHigh ? 'High Risk' : 'Low Risk'}</div>
+      <div class="history-item-prob">${prob}% probability</div>
+      <div class="history-item-meta">${dateStr} · ${timeStr}</div>
+    `;
+    item.addEventListener('click', () => loadHistoryEntry(entry.id));
+    list.appendChild(item);
+  });
+}
+
+function loadHistoryEntry(id) {
+  const entry = loadHistory().find(e => e.id === id);
+  if (!entry) return;
+  activeHistoryId = id;
+  renderHistorySidebar();
+  populateForm(entry.input);
+  renderResults(entry.result, entry.input);
+  showResultsView();
+}
+
+function clearHistory() {
+  localStorage.removeItem(HISTORY_KEY);
+  activeHistoryId = null;
+  renderHistorySidebar();
+}
+
+// ─────────────────────────────────────────────
+// FORM HELPERS
+// ─────────────────────────────────────────────
+function populateForm(inputData) {
+  FIELDS.forEach(f => {
+    const el = document.getElementById(f.id);
+    if (el && inputData[f.key] !== undefined) el.value = inputData[f.key];
+  });
+}
+
+function validateForm() {
+  let valid = true;
+  FIELDS.forEach(f => {
+    const input = document.getElementById(f.id);
+    const errEl = document.getElementById(f.errId);
+    const val   = input.value.trim();
+    input.classList.remove('error');
+    errEl.textContent = '';
+    errEl.classList.remove('visible');
+
+    if (val === '') {
+      input.classList.add('error');
+      errEl.textContent = 'Required';
+      errEl.classList.add('visible');
+      valid = false;
+    } else if (parseFloat(val) < 0) {
+      input.classList.add('error');
+      errEl.textContent = 'Must be 0 or above';
+      errEl.classList.add('visible');
+      valid = false;
+    }
+  });
+  return valid;
+}
+
+function getFormData() {
+  const data = {};
+  FIELDS.forEach(f => {
+    data[f.key] = parseFloat(document.getElementById(f.id).value);
+  });
+  return data;
+}
+
+// ─────────────────────────────────────────────
+// VIEW SWITCHING
+// ─────────────────────────────────────────────
+function showInputForm() {
+  activeHistoryId = null;
+  renderHistorySidebar();
+  document.getElementById('input-view').style.display   = 'block';
+  document.getElementById('results-view').style.display = 'none';
+  FIELDS.forEach(f => document.getElementById(f.id).removeAttribute('readonly'));
+  const btn = document.getElementById('btn-submit');
+  btn.classList.remove('loading');
+  btn.disabled = false;
+  document.getElementById('form-error').classList.remove('visible');
+}
+
+function showResultsView() {
+  document.getElementById('input-view').style.display   = 'none';
+  document.getElementById('results-view').style.display = 'block';
+  window.scrollTo(0, 0);
+}
+
+// ─────────────────────────────────────────────
+// NORMALISE API RESPONSE
+// Handles both the contract spec field names AND
+// the actual backend field names (explanation_text,
+// advice_text, non_actionable_features as string[])
+// ─────────────────────────────────────────────
+function normaliseResponse(data, inputData) {
+  // Text fields — backend uses explanation_text / advice_text
+  data.clinical_explanation = data.clinical_explanation
+    || data.explanation_text
+    || '—';
+
+  data.personalized_advice = data.personalized_advice
+    || data.advice_text
+    || '—';
+
+  // confidence — backend returns it already as a percentage (e.g. 14.9)
+  // spec says it's absolute distance from 0.5 (0–0.5)
+  // we normalise: if > 1 it's already a percentage, otherwise multiply
+  if (typeof data.confidence === 'number' && data.confidence <= 1) {
+    data._confidencePct = (data.confidence * 100).toFixed(1);
+  } else {
+    data._confidencePct = (data.confidence || 0).toFixed(1);
+  }
+
+  // non_actionable_features — backend returns string[], spec returns object[]
+  // normalise to object[] with .feature, .value, .shap_value
+  if (Array.isArray(data.non_actionable_features)) {
+    data.non_actionable_features = data.non_actionable_features.map(f => {
+      if (typeof f === 'string') {
+        // find shap value from all_features
+        const shapEntry = (data.all_features || []).find(af =>
+          (typeof af === 'object' ? af.feature : af[0]) === f
+        );
+        const shapVal = shapEntry
+          ? (typeof shapEntry === 'object' ? shapEntry.shap_value : shapEntry[1])
+          : null;
+        return {
+          feature:    f,
+          value:      inputData ? (inputData[f] !== undefined ? inputData[f] : '—') : '—',
+          shap_value: shapVal
+        };
+      }
+      // already an object — ensure value is populated from inputData if missing
+      if (typeof f === 'object' && f.feature && f.value === undefined && inputData) {
+        f.value = inputData[f.feature] !== undefined ? inputData[f.feature] : '—';
+      }
+      return f;
+    });
+  }
+
+  return data;
+}
+
+// ─────────────────────────────────────────────
+// RENDER RESULTS
+// ─────────────────────────────────────────────
+function renderResults(rawData, inputData) {
+  const data = normaliseResponse(rawData, inputData);
+
+  // ── Risk label ──
+  const isHigh   = data.prediction === 1;
+  const labelEl  = document.getElementById('r-risk-label');
+  labelEl.textContent = isHigh ? 'HIGH RISK' : 'LOW RISK';
+  labelEl.className   = 'risk-label ' + (isHigh ? 'high' : 'low');
+
+  // ── Probability & confidence ──
+  const probPct = (data.probability * 100).toFixed(1);
+  document.getElementById('r-probability').textContent = probPct + '%';
+  document.getElementById('r-confidence').textContent  = data._confidencePct + '%';
+  document.getElementById('r-prob-bar').style.width    = probPct + '%';
+
+  // ── Submitted values grid ──
+  const submittedGrid = document.getElementById('r-submitted-values');
+  submittedGrid.innerHTML = '';
+  if (inputData) {
+    FIELDS.forEach(f => {
+      const div = document.createElement('div');
+      div.className = 'submitted-item';
+      div.innerHTML = `
+        <span class="submitted-item-label">${FIELD_LABELS[f.key] || f.key}</span>
+        <span class="submitted-item-value">${inputData[f.key] !== undefined ? inputData[f.key] : '—'}</span>
+      `;
+      submittedGrid.appendChild(div);
+    });
+  }
+
+  // ── SHAP rows ──
+  const allFeatures = data.all_features || [];
+  const topNames = new Set(
+    (data.top_features || []).slice(0, 3).map(f =>
+      typeof f === 'object' ? f.feature : f[0]
+    )
+  );
+  const maxAbs = Math.max(
+    ...allFeatures.map(f => Math.abs(typeof f === 'object' ? f.shap_value : f[1])),
+    0.001
+  );
+
+  const shapContainer = document.getElementById('r-shap-rows');
+  shapContainer.innerHTML = '';
+
+  allFeatures.forEach(f => {
+    const name      = typeof f === 'object' ? f.feature   : f[0];
+    const val       = typeof f === 'object' ? f.shap_value : f[1];
+    const isPrimary = topNames.has(name);
+    const pct       = ((Math.abs(val) / maxAbs) * 50).toFixed(2);
+    const sign      = val >= 0 ? '+' : '';
+
+    const row = document.createElement('div');
+    row.className = 'shap-row';
+    row.innerHTML = `
+      <span class="shap-name ${isPrimary ? 'primary' : ''}">${name}</span>
+      <div class="shap-bar-wrap">
+        <div class="shap-center"></div>
+        <div class="shap-bar ${val >= 0 ? 'positive' : 'negative'}" style="width:${pct}%"></div>
+      </div>
+      <span class="shap-val">${sign}${val.toFixed(3)}</span>
+    `;
+    shapContainer.appendChild(row);
+  });
+
+  // ── Explanation & advice text ──
+  document.getElementById('r-explanation').textContent = data.clinical_explanation;
+  document.getElementById('r-advice').textContent      = data.personalized_advice;
+
+  // ── Non-actionable factors ──
+  const naItems     = data.non_actionable_features || [];
+  const naSection   = document.getElementById('r-non-actionable-section');
+  const naContainer = document.getElementById('r-non-actionable-items');
+  naContainer.innerHTML = '';
+
+  if (naItems.length === 0) {
+    naSection.style.display = 'none';
+  } else {
+    naSection.style.display = 'block';
+    naItems.forEach(f => {
+      const name = f.feature || f[0] || '—';
+      const val  = f.value !== undefined ? f.value : '—';
+      const shap = f.shap_value !== undefined ? f.shap_value : (Array.isArray(f) ? f[1] : null);
+      const sign = typeof shap === 'number' ? (shap >= 0 ? '+' : '') : '';
+      const shapStr = typeof shap === 'number' ? sign + shap.toFixed(3) : '—';
+
+      const div = document.createElement('div');
+      div.className = 'na-item';
+      div.innerHTML = `
+        <div class="na-item-top">
+          <span class="na-feature-name">${name}</span>
+          <span class="na-value">${val}</span>
+          <span class="na-shap">${shapStr}</span>
+        </div>
+        <div class="na-note">This factor is acknowledged in the assessment but is not modifiable through lifestyle changes.</div>
+      `;
+      naContainer.appendChild(div);
+    });
+  }
+}
+
+// ─────────────────────────────────────────────
+// FORM SUBMIT
+// ─────────────────────────────────────────────
+document.getElementById('assessment-form').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  document.getElementById('form-error').classList.remove('visible');
+
+  if (!validateForm()) return;
+
+  const inputData = getFormData();
+
+  // Build API payload with the backend's expected keys
+  const payload = {
+    Pregnancies:              inputData.Pregnancies,
+    Glucose:                  inputData.Glucose,
+    BloodPressure:            inputData.BloodPressure,
+    SkinThickness:            inputData.SkinThickness,
+    Insulin:                  inputData.Insulin,
+    BMI:                      inputData.BMI,
+    DiabetesPedigreeFunction: inputData.DiabetesPedigreeFunction,
+    Age:                      inputData.Age,
+  };
+
+  const btn = document.getElementById('btn-submit');
+  btn.classList.add('loading');
+  btn.disabled = true;
+  FIELDS.forEach(f => document.getElementById(f.id).setAttribute('readonly', true));
+
+  try {
+    const response = await fetch('http://localhost:8000/predict', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) throw new Error('Server error ' + response.status);
+
+    const data = await response.json();
+
+    const id = addToHistory(inputData, data);
+    activeHistoryId = id;
+    renderHistorySidebar();
+
+    renderResults(data, inputData);
+    showResultsView();
+
+  } catch (err) {
+    console.error('[assessment]', err);
+    document.getElementById('form-error').classList.add('visible');
+    btn.classList.remove('loading');
+    btn.disabled = false;
+    FIELDS.forEach(f => document.getElementById(f.id).removeAttribute('readonly'));
+  }
+});
+
+// ─────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────
+renderHistorySidebar();
+</script>
+</body>
+</html>
